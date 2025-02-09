@@ -28,25 +28,53 @@
     <div id="map"></div>
     <!-- Pass issue data safely as JSON -->
     <script id="issue-data" type="application/json">{{ issues_json|safe }}</script>
+    
     <script>
       function initMap() {
         var map = L.map('map').setView([20, 77], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+    
         var issues = JSON.parse(document.getElementById("issue-data").textContent);
+        console.log(issues);
+    
         if (issues.length > 0) {
-          map.setView([issues[0].lat, issues[0].lng], 10);
-        }
-        issues.forEach(function(issue) {
-          if (issue.lat && issue.lng) {
-            L.marker([issue.lat, issue.lng])
-              .addTo(map)
-              .bindPopup('<b>' + issue.title + '</b><br>' + issue.location);
+          var bounds = L.latLngBounds();  // To calculate bounds for map view
+    
+          issues.forEach(function(issue) {
+            // Extract lat and lng from location if they are null
+            if (!issue.lat && !issue.lng && issue.location) {
+              var locationParts = issue.location.split(', ');
+              if (locationParts.length === 2) {
+                issue.lat = parseFloat(locationParts[0]);
+                issue.lng = parseFloat(locationParts[1]);
+              }
+            }
+    
+            if (issue.lat && issue.lng) {  // Only add markers with valid lat/lng
+              var marker = L.marker([issue.lat, issue.lng])
+                .addTo(map)
+                .bindPopup('<b>' + issue.title + '</b><br>' + 
+                       'Status: ' + issue.status + '<br>' +  // Display the status
+                       'Location: ' + issue.location + '<br>' +
+                       'Description: ' + issue.description);
+    
+              bounds.extend([issue.lat, issue.lng]);  // Extend the bounds with the current marker's position
+            }
+          });
+    
+          if (bounds.isValid()) {  // Check if bounds are valid before calling fitBounds
+            map.fitBounds(bounds);
           }
-        });
+        }
       }
+    
       document.addEventListener("DOMContentLoaded", initMap);
     </script>
+    
+    
+    
+    
 </body>
 </html>

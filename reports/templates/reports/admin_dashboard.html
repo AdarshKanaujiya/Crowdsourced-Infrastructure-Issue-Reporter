@@ -10,11 +10,13 @@
     <ul>
         {% for issue in issues %}
             <li>
-                {{ issue.title }} - {{ issue.status }} - 
+                {{ issue.title }} - {{ issue.status }}
                 <a href="{% url 'update_issue_status' issue.id %}">Update Status</a>
+                <a href="{% url 'delete_issue' issue.id %}">Delete</a>
             </li>
         {% endfor %}
     </ul>
     <a href="{% url 'issue_list' %}">Back to Issue List</a>
+    <a href="{% url 'forward_to_government' issue.id %}">Forward to Government</a>
 </body>
 </html>

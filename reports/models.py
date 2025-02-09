@@ -1,5 +1,11 @@
 from django.db import models
+from django.utils import timezone
+
 from django.contrib.auth.models import User
+from django.utils.timezone import now
+
+created_at = models.DateTimeField(auto_now_add=True, default=now)
+
 
 class Issue(models.Model):
     CATEGORY_CHOICES = [
@@ -33,14 +39,15 @@ class Issue(models.Model):
     def __str__(self):
         return self.title
 
+
 class Comment(models.Model):
-    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    issue = models.ForeignKey('Issue', on_delete=models.CASCADE, related_name='comments')
+    user = models.CharField(max_length=100, default='Guest')  # Store user name as a string (default 'Guest' for anonymous)
     text = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'Comment by {self.user.username} on {self.issue.title}'
+        return f'Comment by {self.user} on {self.issue.title}'
 
 class Vote(models.Model):
     VOTE_CHOICES = [
@@ -48,11 +55,14 @@ class Vote(models.Model):
         ('Downvote', 'Downvote'),
     ]
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='votes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # User field is optional
+    ip_address = models.GenericIPAddressField(null=True, blank=True)  # Field for storing IP address
     vote_type = models.CharField(max_length=10, choices=VOTE_CHOICES)
 
     class Meta:
-        unique_together = ('issue', 'user')
+        unique_together = ('issue', 'user', 'ip_address')  # Ensuring unique votes by user/IP per issue
 
     def __str__(self):
-        return f'{self.vote_type} by {self.user.username} on {self.issue.title}'
+        if self.user:
+            return f'{self.vote_type} by {self.user.username} on {self.issue.title}'
+        return f'{self.vote_type} from IP {self.ip_address} on {self.issue.title}'
