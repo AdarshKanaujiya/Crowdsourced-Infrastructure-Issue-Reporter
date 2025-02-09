@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issue Detail</title>
+</head>
+<body>
+    <h2>{{ issue.title }}</h2>
+    <p>{{ issue.description }}</p>
+    <p>Category: {{ issue.category }}</p>
+    <p>Location: {{ issue.location }}</p>
+    <p>Status: {{ issue.status }}</p>
+    
+    <h3>Comments</h3>
+    <ul>
+        {% for comment in issue.comments.all %}
+            <li>{{ comment.user.username }}: {{ comment.text }} ({{ comment.timestamp }})</li>
+        {% empty %}
+            <li>No comments yet.</li>
+        {% endfor %}
+    </ul>
+    
+    <h3>Add a Comment</h3>
+    <form method="post" action="{% url 'add_comment' issue.id %}">
+        {% csrf_token %}
+        {{ comment_form.as_p }}
+        <button type="submit">Submit Comment</button>
+    </form>
+    <a href="{% url 'issue_list' %}">Back to Issue List</a>
+</body>
+</html>

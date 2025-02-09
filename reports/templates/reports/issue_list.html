@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reported Issues</title>
+    <!-- Leaflet.js for OpenStreetMap -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 400px; width: 100%; }
+        .container { margin: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Reported Issues</h2>
+    <ul>
+        {% for issue in issues %}
+            <li><a href="{% url 'issue_detail' issue.id %}">{{ issue.title }}</a> - {{ issue.status }}</li>
+        {% endfor %}
+    </ul>
+    
+    <!-- Link to Report an Issue Form -->
+    <a href="{% url 'report_issue' %}">Report an Issue</a>
+    <a href="{% url 'admin_login' %}">Admin Login</a>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+    <!-- Pass issue data safely as JSON -->
+    <script id="issue-data" type="application/json">{{ issues_json|safe }}</script>
+    <script>
+      function initMap() {
+        var map = L.map('map').setView([20, 77], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        var issues = JSON.parse(document.getElementById("issue-data").textContent);
+        if (issues.length > 0) {
+          map.setView([issues[0].lat, issues[0].lng], 10);
+        }
+        issues.forEach(function(issue) {
+          if (issue.lat && issue.lng) {
+            L.marker([issue.lat, issue.lng])
+              .addTo(map)
+              .bindPopup('<b>' + issue.title + '</b><br>' + issue.location);
+          }
+        });
+      }
+      document.addEventListener("DOMContentLoaded", initMap);
+    </script>
+</body>
+</html>
