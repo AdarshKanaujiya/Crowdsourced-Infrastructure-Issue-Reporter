@@ -1,11 +1,6 @@
 from django.db import models
-from django.utils import timezone
-
 from django.contrib.auth.models import User
 from django.utils.timezone import now
-
-created_at = models.DateTimeField(auto_now_add=True, default=now)
-
 
 class Issue(models.Model):
     CATEGORY_CHOICES = [
@@ -27,13 +22,13 @@ class Issue(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Other')
-    location = models.CharField(max_length=255)
+    location = models.CharField(max_length=255, blank=True, default="")  # Allow empty location
     image = models.ImageField(upload_to='issue_images/', null=True, blank=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Pending')
     votes_count = models.IntegerField(default=0)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Allow regular users to report issues without login
-    lat = models.FloatField(null=True, blank=True)  # Location's latitude (optional)
-    lng = models.FloatField(null=True, blank=True)  # Location's longitude (optional)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Allow anonymous reporting
+    lat = models.FloatField(null=True, blank=True)  # Latitude
+    lng = models.FloatField(null=True, blank=True)  # Longitude
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -41,13 +36,14 @@ class Issue(models.Model):
 
 
 class Comment(models.Model):
-    issue = models.ForeignKey('Issue', on_delete=models.CASCADE, related_name='comments')
-    user = models.CharField(max_length=100, default='Guest')  # Store user name as a string (default 'Guest' for anonymous)
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
+    user = models.CharField(max_length=100, default='Guest')  # Store user name as a string
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'Comment by {self.user} on {self.issue.title}'
+
 
 class Vote(models.Model):
     VOTE_CHOICES = [
@@ -55,12 +51,21 @@ class Vote(models.Model):
         ('Downvote', 'Downvote'),
     ]
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='votes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # User field is optional
-    ip_address = models.GenericIPAddressField(null=True, blank=True)  # Field for storing IP address
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Optional user
+    ip_address = models.GenericIPAddressField(null=True, blank=True)  # Store voter’s IP
     vote_type = models.CharField(max_length=10, choices=VOTE_CHOICES)
 
     class Meta:
-        unique_together = ('issue', 'user', 'ip_address')  # Ensuring unique votes by user/IP per issue
+        constraints = [
+            models.UniqueConstraint(
+                fields=['issue', 'user'], name='unique_vote_per_user',
+                condition=models.Q(user__isnull=False)  # Unique per user
+            ),
+            models.UniqueConstraint(
+                fields=['issue', 'ip_address'], name='unique_vote_per_ip',
+                condition=models.Q(ip_address__isnull=False)  # Unique per IP
+            )
+        ]
 
     def __str__(self):
         if self.user:

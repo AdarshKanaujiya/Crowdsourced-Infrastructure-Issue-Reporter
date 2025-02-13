@@ -12,8 +12,7 @@
     </style>
 </head>
 <body>
-
-    <form method="POST" action="{% url 'report_issue' %}" enctype="multipart/form-data">
+    <form id="issue-form" method="POST" action="{% url 'report_issue' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <label for="title">Title:</label>
         <input type="text" id="title" name="title" required><br><br>
@@ -38,6 +37,10 @@
         <label for="image">Image:</label>
         <input type="file" id="image" name="image" accept="image/*"><br><br>
     
+        <!-- Hidden inputs for lat/lng -->
+        <input type="hidden" id="lat" name="lat">
+        <input type="hidden" id="lng" name="lng">
+    
         <!-- Map container -->
         <div id="map"></div><br>
     
@@ -49,72 +52,53 @@
     <script>
         let map, marker;
 
-        // Initialize the map
         function initializeMap(latitude, longitude) {
-            map = L.map('map').setView([latitude, longitude], 13);  // Default zoom level 13
-
-            // Set up the map tiles (using OpenStreetMap)
+            map = L.map('map').setView([latitude, longitude], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            // Add a draggable marker at the current location
             marker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
+            document.getElementById("lat").value = latitude; // Use correct IDs here
+            document.getElementById("lng").value = longitude; // Use correct IDs here
             
-            // Update the input fields when the marker is dragged
             marker.on('dragend', function(event) {
                 const latlng = event.target.getLatLng();
+                document.getElementById("lat").value = latlng.lat; // Use correct IDs
+                document.getElementById("lng").value = latlng.lng; // Use correct IDs
                 document.getElementById("location").value = `${latlng.lat}, ${latlng.lng}`;
             });
         }
 
-        // Use geolocation to get user's current location
         function getCurrentLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-
-                    // Initialize map with current location
-                    initializeMap(latitude, longitude);
-                });
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        initializeMap(position.coords.latitude, position.coords.longitude);
+                    },
+                    function(error) {
+                        console.error("Error getting location: ", error);
+                        alert("Location access denied. Please select your location manually.");
+                        initializeMap(19.0760, 72.8777); // Default to Mumbai
+                    }
+                );
             } else {
                 alert("Geolocation is not supported by this browser.");
+                initializeMap(19.0760, 72.8777);
             }
         }
 
-        // Submit form data
-        function submitForm() {
-            const location = document.getElementById("location").value.split(',');
-            const latitude = location[0] || marker.getLatLng().lat;  // Use manual location or marker position
-            const longitude = location[1] || marker.getLatLng().lng;  // Use manual location or marker position
+        document.getElementById("issue-form").addEventListener("submit", function (e) {
+            var lat = document.getElementById("lat").value; // Use the correct ID here
+            var lng = document.getElementById("lng").value; // Use the correct ID here
+            console.log("Submitting issue with location:", lat, lng);
+            if (!lat || !lng) {
+                e.preventDefault();
+                alert("Location is missing. Please enable location services or select manually.");
+            }
+        });
 
-            const formData = new FormData();
-            formData.append("title", document.getElementById("title").value);
-            formData.append("description", document.getElementById("description").value);
-            formData.append("category", document.getElementById("category").value);
-            formData.append("location", document.getElementById("location").value);
-            formData.append("image", document.getElementById("image").files[0]);
-            formData.append("lat", latitude);
-            formData.append("lng", longitude);
-
-            // Send the data to the server
-            fetch('/report_issue/', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert("Issue reported successfully!");
-            })
-            .catch(error => {
-                alert("Error reporting issue!");
-            });
-        }
-
-        // Get the current location when the page loads
         window.onload = getCurrentLocation;
     </script>
-
 </body>
 </html>

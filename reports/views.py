@@ -105,25 +105,31 @@ def report_issue(request):
         title = request.POST.get("title")
         description = request.POST.get("description")
         category = request.POST.get("category")
-        location = request.POST.get("location")
-        lat = request.POST.get("lat")
-        lng = request.POST.get("lng")
+        location = request.POST.get("location")  # User-entered location
+        lat = request.POST.get("lat")  # Ensure it matches frontend key
+        lng = request.POST.get("lng")  # Ensure it matches frontend key
         image = request.FILES.get("image")
 
+        # Debugging: Print received data
+        print("Received Data:", title, description, category, location, lat, lng, image)
+
+        if not lat or not lng:
+            return JsonResponse({"error": "Latitude or Longitude is missing"}, status=400)
+
+        # Save to database
         issue = Issue.objects.create(
             title=title,
             description=description,
             category=category,
-            location=location,
+            location=location if location else f"{lat}, {lng}",  # Use lat/lng if location is empty
             lat=lat,
             lng=lng,
             image=image
         )
-        issue.save()
-        return JsonResponse({"message": "Issue reported successfully"}, status=201)
+
+        return JsonResponse({"message": "Issue reported successfully!", "issue_id": issue.id})
 
     return render(request, "reports/report_issue.html")
-
 
 # def report_issue(request):
 #     if request.method == 'POST':
