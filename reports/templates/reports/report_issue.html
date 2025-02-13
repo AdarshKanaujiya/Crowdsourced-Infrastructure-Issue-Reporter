@@ -95,6 +95,24 @@
             if (!lat || !lng) {
                 e.preventDefault();
                 alert("Location is missing. Please enable location services or select manually.");
+            } else {
+                e.preventDefault();  // Prevent the form from submitting normally
+
+                fetch("{% url 'report_issue' %}", {
+                    method: 'POST',
+                    body: new FormData(document.getElementById("issue-form"))
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.token) {
+                        alert("Issue reported successfully! Your token is: " + data.token);
+                    } else {
+                        alert("Error reporting issue. Please try again.");
+                    }
+                })
+                .catch(error => {
+                    alert("An error occurred: " + error.message);
+                });
             }
         });
 

@@ -15,7 +15,7 @@ from django.core.mail import send_mail
 import reports.views as views
 from django.utils.timezone import now
 import json
-
+import uuid
 
 
 
@@ -100,6 +100,8 @@ def issue_detail(request, issue_id):
     comment_form = CommentForm()
     return render(request, "reports/issue_detail.html", {"issue": issue, "comment_form": comment_form})
 
+
+
 def report_issue(request):
     if request.method == "POST":
         title = request.POST.get("title")
@@ -116,6 +118,9 @@ def report_issue(request):
         if not lat or not lng:
             return JsonResponse({"error": "Latitude or Longitude is missing"}, status=400)
 
+        # Create a unique token for the issue
+        token = uuid.uuid4().hex
+
         # Save to database
         issue = Issue.objects.create(
             title=title,
@@ -124,12 +129,15 @@ def report_issue(request):
             location=location if location else f"{lat}, {lng}",  # Use lat/lng if location is empty
             lat=lat,
             lng=lng,
-            image=image
+            image=image,
+            token=token  # Store the unique token
         )
 
-        return JsonResponse({"message": "Issue reported successfully!", "issue_id": issue.id})
+        return JsonResponse({"message": "Issue reported successfully!", "issue_id": issue.id, "token": token})
 
     return render(request, "reports/report_issue.html")
+
+
 
 # def report_issue(request):
 #     if request.method == 'POST':
@@ -257,3 +265,12 @@ def get_issue_data():
         })
     
     return cleaned_issues
+
+
+def search_issue(request):
+    issues = None
+    if 'token' in request.GET:
+        token = request.GET['token']
+        issues = Issue.objects.filter(token=token)
+    
+    return render(request, 'reports/search_issue.html', {'issues': issues})

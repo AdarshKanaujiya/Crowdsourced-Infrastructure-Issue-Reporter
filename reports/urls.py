@@ -10,6 +10,7 @@ from .views import (
     add_comment,
     delete_issue,
     forward_to_government,
+    search_issue
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path("issues/<int:issue_id>/comment/", add_comment, name="add_comment"),  # Adding a comment to an issue
     path("admin/delete/<int:issue_id>/", delete_issue, name="delete_issue"),
     path("admin/forward/<int:issue_id>/", forward_to_government, name="forward_to_government"),
+    path('search_issue/', search_issue, name='search_issue'),
 ]

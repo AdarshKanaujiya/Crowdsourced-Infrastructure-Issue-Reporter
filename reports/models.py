@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import now
+import uuid
 
 class Issue(models.Model):
     CATEGORY_CHOICES = [
@@ -30,6 +31,7 @@ class Issue(models.Model):
     lat = models.FloatField(null=True, blank=True)  # Latitude
     lng = models.FloatField(null=True, blank=True)  # Longitude
     created_at = models.DateTimeField(auto_now_add=True)
+    token = models.CharField(max_length=255, default=uuid.uuid4, unique=True)  # Add a token field
 
     def __str__(self):
         return self.title
